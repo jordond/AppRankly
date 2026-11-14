@@ -23,6 +23,7 @@ const { aggregateOverviews, matchAndPairApps, correlateReleases, calculateRetent
 const { ensureDirectoriesAndTemplates } = require("./lib/init");
 const asoRouter = require("./routes/aso");
 const storeStatusRouter = require("./routes/storeStatus");
+const { startStoreStatusPoller } = require("./lib/storeStatus/poller");
 const { sendNtfyNotification, sendWebhookNotification, sendTelegramNotification, syncNtfyTopicMessages, clearNotifications, markNotificationsRead } = require("./lib/notifier");
 const { checkAndNotifyStats, startPeriodicScheduler, getSchedulerStatus, checkNegativeReviewAlerts } = require("./lib/scheduler");
 const { calculateAppHealthScore } = require("./lib/healthScore");
@@ -889,6 +890,7 @@ app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
 
 ensureGitNotesRepo(true);
 startPeriodicScheduler(schedulerHelpers);
+startStoreStatusPoller(getBaseConfig);
 // With no HOST set, Node binds the unspecified IPv6 address (dual-stack, so IPv4 too) and
 // falls back to 0.0.0.0 when IPv6 is unavailable. Binding 0.0.0.0 only broke "localhost"
 // health checks on images where localhost resolves to ::1.

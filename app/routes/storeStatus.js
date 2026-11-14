@@ -4,6 +4,8 @@ const { getBaseConfig } = require('../lib/config');
 const { buildStoreLinks } = require('../lib/storeStatus/links');
 const { listStoreApps, getGcpProjectId } = require('../lib/storeStatus/apps');
 const { getStatusForApps } = require('../lib/storeStatus/service');
+const { isEnabled, getStoreStatusPollerStatus } = require('../lib/storeStatus/poller');
+const store = require('../lib/storeStatus/store');
 
 // GET /api/store-status/links
 // Console and store-listing links for every app, plus account-level links.
@@ -33,6 +35,11 @@ router.get('/', async (req, res) => {
       if (app.apple) Object.assign(app.apple, status[app.id]?.apple || {});
       if (app.google) Object.assign(app.google, status[app.id]?.google || {});
     });
+    links.polling = { enabled: isEnabled(config), ...getStoreStatusPollerStatus() };
+    links.recentChanges = store.getRecentEvents(10).map(e => ({
+      platform: e.platform, appName: e.app_name || e.app_id, subject: e.subject,
+      fromState: e.from_state, toState: e.to_state, detectedAt: e.detected_at
+    }));
     res.json(links);
   } catch (err) {
     console.error('[StoreStatus] Failed to load status:', err.message);

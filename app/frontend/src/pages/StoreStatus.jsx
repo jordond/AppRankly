@@ -5,6 +5,7 @@ import { MOCK_STORE_STATUS } from '../lib/storeStatusMock';
 import { PlayStoreIcon, AppleStoreIcon } from '../components/icons/StoreIcons';
 import AppLinksCard from '../components/storeStatus/AppLinksCard';
 import LinkGroup from '../components/storeStatus/LinkGroup';
+import RecentChanges from '../components/storeStatus/RecentChanges';
 
 function groupCustomLinks(links = []) {
   const groups = new Map();
@@ -101,6 +102,15 @@ export default function StoreStatus({ authToken, isStaticMode, isDemoMode }) {
               </div>
             )}
           </div>
+
+          <RecentChanges changes={data?.recentChanges} />
+
+          {data?.polling && !data.polling.enabled && (
+            <p className="text-xs text-slate-500">
+              Background checks and change alerts are off. Set <code className="text-slate-300">storeStatus.enabled</code> to
+              true in config.json to check on a schedule and get notified when a state changes.
+            </p>
+          )}
 
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Account links</h3>

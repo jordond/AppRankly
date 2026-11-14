@@ -71,4 +71,51 @@ function isFresh(snapshot, ttlMs, now = new Date()) {
   return Number.isFinite(age) && age >= 0 && age < ttlMs;
 }
 
-module.exports = { getSnapshot, saveSuccess, saveFailure, isFresh };
+// --- Transition events -------------------------------------------------------
+
+const memoryEvents = [];
+let memoryEventId = 0;
+
+function recordEvents(platform, appId, appName, events = [], now = new Date()) {
+  if (events.length === 0) return;
+  const detectedAt = now.toISOString();
+  if (!db) {
+    events.forEach(e => memoryEvents.push({
+      id: ++memoryEventId, platform, app_id: String(appId), app_name: appName || null,
+      subject: e.subject, from_state: e.fromState || null, to_state: e.toState, detected_at: detectedAt, notified_at: null
+    }));
+    return;
+  }
+  const insert = db.prepare(`
+    INSERT INTO store_status_events (platform, app_id, app_name, subject, from_state, to_state, detected_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  events.forEach(e => insert.run(platform, String(appId), appName || null, e.subject, e.fromState || null, e.toState, detectedAt));
+}
+
+/** Events not yet announced, oldest first. */
+function getPendingEvents() {
+  if (!db) return memoryEvents.filter(e => !e.notified_at);
+  return db.prepare('SELECT * FROM store_status_events WHERE notified_at IS NULL ORDER BY id ASC').all();
+}
+
+function markEventsNotified(ids = [], now = new Date()) {
+  if (ids.length === 0) return;
+  const iso = now.toISOString();
+  if (!db) {
+    memoryEvents.forEach(e => { if (ids.includes(e.id)) e.notified_at = iso; });
+    return;
+  }
+  const update = db.prepare('UPDATE store_status_events SET notified_at = ? WHERE id = ?');
+  ids.forEach(id => update.run(iso, id));
+}
+
+function getRecentEvents(limit = 20) {
+  if (!db) return memoryEvents.slice(-limit).reverse();
+  return db.prepare('SELECT * FROM store_status_events ORDER BY id DESC LIMIT ?').all(limit);
+}
+
+module.exports = {
+  getSnapshot, saveSuccess, saveFailure, isFresh,
+  recordEvents, getPendingEvents, markEventsNotified, getRecentEvents
+};

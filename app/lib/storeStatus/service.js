@@ -5,6 +5,7 @@
 const { buildAppleViewer } = require('../viewerFactory');
 const { createAppleClient, fetchAppleAppStatus } = require('./appleStatus');
 const { classifyAppleError } = require('./errors');
+const { diffAppleStatus } = require('./changes');
 const store = require('./store');
 
 const KIND_RELEASE = 'release';
@@ -40,13 +41,16 @@ const toView = (snapshot) => ({
   error: snapshot?.error || null
 });
 
-async function getAppleStatus(appleAppId, { client, clientError, ttlMs, fresh = false, now = new Date() }) {
+async function getAppleStatus(appleAppId, { client, clientError, ttlMs, fresh = false, now = new Date(), appName = null }) {
   if (!appleAppId) return toView(null);
   const cached = store.getSnapshot('apple', appleAppId, KIND_RELEASE);
   if (!fresh && store.isFresh(cached, ttlMs, now)) return toView(cached);
   if (!client) return { ...toView(cached), error: clientError };
   try {
     const payload = await fetchAppleAppStatus(client, appleAppId);
+    // Every successful fetch is compared with the last one, whether it came from the
+    // poller or from someone opening the page, so no transition is missed or seen twice.
+    store.recordEvents('apple', appleAppId, appName, diffAppleStatus(cached?.payload || null, payload), now);
     return toView(store.saveSuccess('apple', appleAppId, KIND_RELEASE, payload, now));
   } catch (err) {
     return toView(store.saveFailure('apple', appleAppId, KIND_RELEASE, classifyAppleError(err), now));
@@ -63,7 +67,7 @@ async function getStatusForApps(config, apps, { fresh = false, now = new Date(),
   const apple = appleClient ? { client: appleClient, error: null } : getAppleClient(config);
   const entries = await Promise.all(apps.map(async (app) => {
     const appleStatus = app.apple
-      ? await getAppleStatus(app.apple.appId, { client: apple.client, clientError: apple.error, ttlMs, fresh, now })
+      ? await getAppleStatus(app.apple.appId, { client: apple.client, clientError: apple.error, ttlMs, fresh, now, appName: app.name })
       : null;
     return [app.id, { apple: appleStatus, google: null }];
   }));
