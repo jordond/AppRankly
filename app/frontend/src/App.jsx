@@ -14,6 +14,7 @@ import { findProject, getProjectUrlSegment } from './lib/projectUtils';
 const Analytics = React.lazy(() => import('./pages/Analytics'));
 const StoreASO = React.lazy(() => import('./pages/StoreASO'));
 const Releases = React.lazy(() => import('./pages/Releases'));
+const StoreStatus = React.lazy(() => import('./pages/StoreStatus'));
 const Notes = React.lazy(() => import('./pages/Notes'));
 const Reports = React.lazy(() => import('./pages/Reports'));
 const Config = React.lazy(() => import('./pages/Config'));
@@ -167,6 +168,7 @@ function App() {
               <Route path="/store/*" element={<StoreASO {...state} onSelectProject={state.setSelectedProjectIndex} />} />
               <Route path="/retention/*" element={<Analytics {...state} />} />
               <Route path="/releases/*" element={<Releases {...state} />} />
+              <Route path="/status/*" element={<StoreStatus {...state} />} />
               <Route path="/notes" element={<Notes {...state} />} />
               <Route path="/notes/:platform/:projectIndex" element={<Notes {...state} />} />
               <Route path="/notes/id/:noteId" element={<Notes {...state} />} />

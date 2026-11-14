@@ -22,6 +22,7 @@ const resolver = require("./lib/resolver");
 const { aggregateOverviews, matchAndPairApps, correlateReleases, calculateRetentionBenchmarks, weekdayAverages, linearForecast, fillContinuousDailyTrends, aggregateSalesReports } = require("./lib/metrics");
 const { ensureDirectoriesAndTemplates } = require("./lib/init");
 const asoRouter = require("./routes/aso");
+const storeStatusRouter = require("./routes/storeStatus");
 const { sendNtfyNotification, sendWebhookNotification, sendTelegramNotification, syncNtfyTopicMessages, clearNotifications, markNotificationsRead } = require("./lib/notifier");
 const { checkAndNotifyStats, startPeriodicScheduler, getSchedulerStatus, checkNegativeReviewAlerts } = require("./lib/scheduler");
 const { calculateAppHealthScore } = require("./lib/healthScore");
@@ -362,6 +363,7 @@ app.get("/api/badge/:platform/:packageName/:metric", async (req, res) => {
   }
 });
 
+app.use('/api/store-status', authenticate, storeStatusRouter);
 app.use('/api', authenticate, asoRouter);
 
 // --- Protected Endpoints ---

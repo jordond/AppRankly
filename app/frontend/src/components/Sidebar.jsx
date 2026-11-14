@@ -11,7 +11,8 @@ import {
   Settings,
   BookOpen,
   Coffee,
-  Edit3
+  Edit3,
+  Radar
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getProjectUrlSegment } from '../lib/projectUtils';
@@ -30,6 +31,7 @@ const navGroups = [
     items: [
       { id: 'store', label: 'Store (ASO)', icon: Eye },
       { id: 'releases', label: 'Releases', icon: Tag },
+      { id: 'status', label: 'Store Status', icon: Radar },
     ]
   },
   {
@@ -145,7 +147,7 @@ export default function Sidebar({
                     className={({ isActive }) => {
                       const currentPath = location.pathname;
                       const firstSegment = currentPath.split('/')[1] || '';
-                      const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'notes', 'reports', 'config', 'glossary', 'demo'];
+                      const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'status', 'notes', 'reports', 'config', 'glossary', 'demo'];
 
                       let isReallyActive = isActive;
                       if (item.id === 'overview') {
