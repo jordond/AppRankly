@@ -88,11 +88,14 @@ app.post("/api/auth/login", (req, res) => {
   if (username && db) {
     try {
       const user = db.prepare('SELECT * FROM users WHERE username = ?').get(String(username).trim());
-      if (user && bcrypt.compareSync(password, user.password_hash)) {
-        const token = jwt.sign({ username: user.username, role: user.role, team: user.team_name, userId: user.id }, JWT_SECRET, { expiresIn: "365d" });
-        return res.json({ token, user: { username: user.username, role: user.role, team: user.team_name } });
+      if (user) {
+        if (bcrypt.compareSync(password, user.password_hash)) {
+          const token = jwt.sign({ username: user.username, role: user.role, team: user.team_name, userId: user.id }, JWT_SECRET, { expiresIn: "365d" });
+          return res.json({ token, user: { username: user.username, role: user.role, team: user.team_name } });
+        }
+        return res.status(401).json({ error: "Invalid username or password" });
       }
-      return res.status(401).json({ error: "Invalid username or password" });
+      // No such team user: fall through to the admin password below.
     } catch (err) {
       console.error('[Auth] Database auth error:', err);
     }
@@ -105,7 +108,7 @@ app.post("/api/auth/login", (req, res) => {
     const token = jwt.sign({ username: username || "admin", role: "admin", team: "Default" }, JWT_SECRET, { expiresIn: "365d" });
     res.json({ token, user: { username: username || "admin", role: "admin", team: "Default" } });
   } else {
-    res.status(401).json({ error: "Invalid password" });
+    res.status(401).json({ error: username ? "Invalid username or password" : "Invalid password" });
   }
 });
 
