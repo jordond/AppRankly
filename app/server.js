@@ -886,4 +886,9 @@ app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
 
 ensureGitNotesRepo(true);
 startPeriodicScheduler(schedulerHelpers);
-app.listen(PORT, "0.0.0.0", () => console.log(`Dashboard Server running at http://localhost:${PORT}`));
+// With no HOST set, Node binds the unspecified IPv6 address (dual-stack, so IPv4 too) and
+// falls back to 0.0.0.0 when IPv6 is unavailable. Binding 0.0.0.0 only broke "localhost"
+// health checks on images where localhost resolves to ::1.
+const onListening = () => console.log(`Dashboard Server running at http://localhost:${PORT}`);
+if (process.env.HOST) app.listen(PORT, process.env.HOST, onListening);
+else app.listen(PORT, onListening);
