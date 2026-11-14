@@ -18,12 +18,24 @@ const googleLinks = (pkg, consoleAppId) => {
   ];
 };
 
-export const MOCK_STORE_LINKS = {
+export const MOCK_STORE_STATUS = {
   apps: [
     {
       id: 'pair-alpha',
       name: 'App Alpha',
-      apple: { appId: '1000000001', bundleId: 'com.demo.alpha', name: 'App Alpha', links: appleLinks('1000000001') },
+      apple: {
+        appId: '1000000001', bundleId: 'com.demo.alpha', name: 'App Alpha', links: appleLinks('1000000001'),
+        fetchedAt: new Date().toISOString(),
+        error: null,
+        status: {
+          platforms: [{
+            platform: 'IOS',
+            live: { version: '2.4.0', buildNumber: '118', state: 'LIVE', rawState: 'READY_FOR_DISTRIBUTION', phasedRelease: { state: 'ACTIVE', day: 3, percent: 5 } },
+            inFlight: { version: '2.5.0', buildNumber: '121', state: 'IN_REVIEW', rawState: 'IN_REVIEW', phasedRelease: null }
+          }],
+          reviewSubmission: { state: 'IN_REVIEW', needsAttention: false }
+        }
+      },
       google: { packageName: 'com.demo.alpha', name: 'App Alpha', consoleAppId: '4970000000000000001', links: googleLinks('com.demo.alpha', '4970000000000000001') }
     },
     {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, AlertCircle, RefreshCw } from 'lucide-react';
 import { apiFetch } from '../lib/api';
-import { MOCK_STORE_LINKS } from '../lib/storeStatusMock';
+import { MOCK_STORE_STATUS } from '../lib/storeStatusMock';
 import { PlayStoreIcon, AppleStoreIcon } from '../components/icons/StoreIcons';
 import AppLinksCard from '../components/storeStatus/AppLinksCard';
 import LinkGroup from '../components/storeStatus/LinkGroup';
@@ -34,20 +34,20 @@ export default function StoreStatus({ authToken, isStaticMode, isDemoMode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (fresh = false) => {
     if (isDemoMode || isStaticMode) {
-      setData(MOCK_STORE_LINKS);
+      setData(MOCK_STORE_STATUS);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch('/api/store-status/links', {}, authToken, isStaticMode);
+      const res = await apiFetch(`/api/store-status${fresh ? '?fresh=1' : ''}`, {}, authToken, isStaticMode);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       setData(await res.json());
     } catch (err) {
-      setError(err.message || 'Failed to load store links');
+      setError(err.message || 'Failed to load store status');
     } finally {
       setLoading(false);
     }
@@ -64,11 +64,11 @@ export default function StoreStatus({ authToken, isStaticMode, isDemoMode }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white">Store Status</h2>
-          <p className="text-sm text-slate-400">Jump straight to the right App Store Connect and Play Console page for each app.</p>
+          <p className="text-sm text-slate-400">Review and release state for each app, with links straight to the matching console pages.</p>
         </div>
         <button
           type="button"
-          onClick={load}
+          onClick={() => load(true)}
           disabled={loading}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-white/10 text-slate-200 bg-white/5 hover:bg-white/10 disabled:opacity-50"
         >
