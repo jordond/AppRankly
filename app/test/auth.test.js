@@ -42,9 +42,50 @@ function testGetStoredAdminPassword() {
   console.log('✓ getStoredAdminPassword prefers ADMIN_PASSWORD over the password file');
 }
 
+function runAuthenticate(headers = {}) {
+  const result = { nextCalled: false, status: 200, body: null };
+  const res = {
+    status(code) { result.status = code; return this; },
+    json(body) { result.body = body; return this; }
+  };
+  auth.authenticate({ headers }, res, () => { result.nextCalled = true; });
+  return result;
+}
+
+function testAuthenticateBeforeSetup() {
+  delete process.env.ALLOW_UNAUTHENTICATED;
+  let r = runAuthenticate();
+  assert.strictEqual(r.nextCalled, false, 'no password set: request must not pass');
+  assert.strictEqual(r.status, 401);
+  assert.strictEqual(r.body.setupRequired, true);
+
+  process.env.ALLOW_UNAUTHENTICATED = 'true';
+  r = runAuthenticate();
+  assert.strictEqual(r.nextCalled, true, 'ALLOW_UNAUTHENTICATED=true opens the API when no password is set');
+
+  // The opt-out never weakens an instance that has a password.
+  process.env.ADMIN_PASSWORD = 'env-pass';
+  r = runAuthenticate();
+  assert.strictEqual(r.nextCalled, false, 'password set: a token is required even with ALLOW_UNAUTHENTICATED');
+  assert.strictEqual(r.status, 401);
+
+  r = runAuthenticate({ authorization: 'Bearer not-a-jwt' });
+  assert.strictEqual(r.status, 401, 'invalid token is rejected');
+
+  const jwt = require('jsonwebtoken');
+  const token = jwt.sign({ username: 'admin', role: 'admin' }, auth.JWT_SECRET);
+  r = runAuthenticate({ authorization: `Bearer ${token}` });
+  assert.strictEqual(r.nextCalled, true, 'valid token passes');
+
+  delete process.env.ADMIN_PASSWORD;
+  delete process.env.ALLOW_UNAUTHENTICATED;
+  console.log('✓ authenticate blocks the API until a password is set');
+}
+
 try {
   testVerifyAdminPassword();
   testGetStoredAdminPassword();
+  testAuthenticateBeforeSetup();
   console.log('All auth tests passed!');
 } finally {
   fs.rmSync(dataDir, { recursive: true, force: true });

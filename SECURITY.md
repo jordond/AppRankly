@@ -46,6 +46,7 @@ When operating AppRankly on your server, container, or cloud instance, please fo
 ### 1. Protect Your Credentials & Configuration
 - **Keep Secrets Out of Version Control**: `config.json` and files in the `config/keys/` (or `data/config/keys/`) folder contain sensitive API keys. They are listed in `.gitignore` by default. **Never commit key files or configuration files to Git.**
 - **Set a Custom `JWT_SECRET`**: In production environments, explicitly set the `JWT_SECRET` environment variable to a strong, randomly generated string (e.g., `openssl rand -hex 32`). Do not rely on dynamic fallbacks in multi-container setups.
+- **Set an Admin Password**: Complete the first-run setup screen, or set the `ADMIN_PASSWORD` environment variable (plaintext or a bcrypt hash). Until a password exists, every API route returns `401`, because those routes can read and write `config.json` and its keys. Setting `ALLOW_UNAUTHENTICATED=true` reopens the API without a password; use it only when AppRankly is reachable solely through your own authentication proxy.
 
 ### 2. Follow Principle of Least Privilege
 - **Google Cloud Service Account**: Grant only the minimal permission required (*"View app information and download bulk reports (read-only)"*) in Google Play Console.

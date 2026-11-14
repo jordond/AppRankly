@@ -49,9 +49,14 @@ const verifyAdminPassword = (password, stored) => {
   return crypto.timingSafeEqual(a, b);
 };
 
+// Until an admin password exists, API routes stay closed: they expose config and store keys.
+// ALLOW_UNAUTHENTICATED=true restores open access for instances that sit behind their own auth proxy.
+const allowUnauthenticated = () => process.env.ALLOW_UNAUTHENTICATED === "true";
+
 const authenticate = (req, res, next) => {
   if (!isPasswordSet()) {
-    return next();
+    if (allowUnauthenticated()) return next();
+    return res.status(401).json({ error: "Setup required: set an admin password first", setupRequired: true });
   }
 
   const authHeader = req.headers.authorization;
