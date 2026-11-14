@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { DATA_DIR } = require("./config");
@@ -27,6 +28,25 @@ if (!JWT_SECRET) {
 
 const isPasswordSet = () => {
   return fs.existsSync(PASSWORD_FILE) || process.env.ADMIN_PASSWORD;
+};
+
+const BCRYPT_HASH_RE = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
+// ADMIN_PASSWORD takes precedence over the password file written by the setup flow.
+const getStoredAdminPassword = () => {
+  if (process.env.ADMIN_PASSWORD) return process.env.ADMIN_PASSWORD;
+  if (fs.existsSync(PASSWORD_FILE)) return fs.readFileSync(PASSWORD_FILE, "utf8").trim();
+  return null;
+};
+
+// The stored value is either a bcrypt hash (password file, or a pre-hashed ADMIN_PASSWORD)
+// or a plaintext ADMIN_PASSWORD. Plaintext is compared in constant time.
+const verifyAdminPassword = (password, stored) => {
+  if (typeof password !== "string" || !password || !stored) return false;
+  if (BCRYPT_HASH_RE.test(stored)) return bcrypt.compareSync(password, stored);
+  const a = crypto.createHash("sha256").update(password).digest();
+  const b = crypto.createHash("sha256").update(String(stored)).digest();
+  return crypto.timingSafeEqual(a, b);
 };
 
 const authenticate = (req, res, next) => {
@@ -60,6 +80,8 @@ module.exports = {
   JWT_SECRET,
   PASSWORD_FILE,
   isPasswordSet,
+  getStoredAdminPassword,
+  verifyAdminPassword,
   authenticate,
   requireAdmin
 };

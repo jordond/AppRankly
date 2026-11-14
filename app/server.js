@@ -11,7 +11,7 @@ require("dotenv").config();
 const rateLimit = require('express-rate-limit');
 
 const { DATA_DIR, getActualConfigPath, getBaseConfig, invalidateConfigCache, resolveKeyFilePath } = require("./lib/config");
-const { JWT_SECRET, PASSWORD_FILE, isPasswordSet, authenticate, requireAdmin } = require("./lib/auth");
+const { JWT_SECRET, PASSWORD_FILE, isPasswordSet, getStoredAdminPassword, verifyAdminPassword, authenticate, requireAdmin } = require("./lib/auth");
 const { buildAppleViewer, buildGoogleViewer, fetchPackagesByPlatform, getIgnoredSet, isIgnored } = require("./lib/viewerFactory");
 const { getScrapedAppleStoreData, getScrapedPlayStoreData, getCachedStoreData, APPSTORE_CACHE_FILE, PLAYSTORE_CACHE_FILE } = require("./lib/scraper");
 const { getReleasesFromFile, saveReleasesToFile, RELEASES_FILE } = require("./lib/releases");
@@ -99,10 +99,9 @@ app.post("/api/auth/login", (req, res) => {
   }
 
   // 2. Legacy / Admin password fallback
-  let storedHash = process.env.ADMIN_PASSWORD;
-  if (!storedHash && fs.existsSync(PASSWORD_FILE)) storedHash = fs.readFileSync(PASSWORD_FILE, "utf8").trim();
+  const storedHash = getStoredAdminPassword();
   if (!storedHash) return res.status(400).json({ error: "Password not set up yet. Please complete initial setup." });
-  if (bcrypt.compareSync(password, storedHash)) {
+  if (verifyAdminPassword(password, storedHash)) {
     const token = jwt.sign({ username: username || "admin", role: "admin", team: "Default" }, JWT_SECRET, { expiresIn: "365d" });
     res.json({ token, user: { username: username || "admin", role: "admin", team: "Default" } });
   } else {
