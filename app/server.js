@@ -105,8 +105,9 @@ app.post("/api/auth/login", (req, res) => {
   const storedHash = getStoredAdminPassword();
   if (!storedHash) return res.status(400).json({ error: "Password not set up yet. Please complete initial setup." });
   if (verifyAdminPassword(password, storedHash)) {
-    const token = jwt.sign({ username: username || "admin", role: "admin", team: "Default" }, JWT_SECRET, { expiresIn: "365d" });
-    res.json({ token, user: { username: username || "admin", role: "admin", team: "Default" } });
+    // Always the fixed admin identity: the typed username is not a verified account here.
+    const token = jwt.sign({ username: "admin", role: "admin", team: "Default" }, JWT_SECRET, { expiresIn: "365d" });
+    res.json({ token, user: { username: "admin", role: "admin", team: "Default" } });
   } else {
     res.status(401).json({ error: username ? "Invalid username or password" : "Invalid password" });
   }
