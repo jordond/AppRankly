@@ -76,21 +76,28 @@ function isFresh(snapshot, ttlMs, now = new Date()) {
 const memoryEvents = [];
 let memoryEventId = 0;
 
+/**
+ * Store detected transitions. An event flagged `silent` is kept for the history list but
+ * is stored as already announced, so it never produces an alert.
+ */
 function recordEvents(platform, appId, appName, events = [], now = new Date()) {
   if (events.length === 0) return;
   const detectedAt = now.toISOString();
   if (!db) {
     events.forEach(e => memoryEvents.push({
       id: ++memoryEventId, platform, app_id: String(appId), app_name: appName || null,
-      subject: e.subject, from_state: e.fromState || null, to_state: e.toState, detected_at: detectedAt, notified_at: null
+      subject: e.subject, from_state: e.fromState || null, to_state: e.toState, detected_at: detectedAt,
+      notified_at: e.silent ? detectedAt : null
     }));
     return;
   }
   const insert = db.prepare(`
-    INSERT INTO store_status_events (platform, app_id, app_name, subject, from_state, to_state, detected_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO store_status_events (platform, app_id, app_name, subject, from_state, to_state, detected_at, notified_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  events.forEach(e => insert.run(platform, String(appId), appName || null, e.subject, e.fromState || null, e.toState, detectedAt));
+  events.forEach(e => insert.run(
+    platform, String(appId), appName || null, e.subject, e.fromState || null, e.toState, detectedAt, e.silent ? detectedAt : null
+  ));
 }
 
 /** Events not yet announced, oldest first. */

@@ -47,6 +47,40 @@ function diffAppleStatus(previous, next) {
   return events;
 }
 
+// Play Console names for the built-in tracks; custom tracks keep their own name.
+const TRACK_LABEL = { production: 'production', beta: 'open testing', alpha: 'closed testing', internal: 'internal testing' };
+
+function trackedReleases(status) {
+  const map = new Map();
+  (status?.tracks || []).forEach(t => {
+    [t.inFlight, t.live].forEach(r => {
+      if (!r) return;
+      const name = r.version || (r.versionCodes && r.versionCodes.length > 0 ? `build ${r.versionCodes[0]}` : null);
+      if (!name) return;
+      map.set(`${TRACK_LABEL[t.track] || t.track} ${name}`, { release: r, track: t.track });
+    });
+  });
+  return map;
+}
+
+/**
+ * Google Play counterpart of diffAppleStatus. Each event carries its `track`, so the
+ * caller can decide which tracks are worth an alert.
+ * @returns {Array<{ subject: string, fromState: string|null, toState: string, track: string }>}
+ */
+function diffGoogleStatus(previous, next) {
+  if (!previous || !next) return [];
+  const before = trackedReleases(previous);
+  const events = [];
+  trackedReleases(next).forEach(({ release, track }, subject) => {
+    const old = before.get(subject)?.release;
+    if (old && old.rawState === release.rawState) return;
+    if (release.state === STATE.DRAFT || release.state === STATE.SUPERSEDED || !release.rawState) return;
+    events.push({ subject, fromState: old?.rawState || null, toState: release.rawState, track });
+  });
+  return events;
+}
+
 const humanize = (raw) => String(raw || '').toLowerCase().replace(/_/g, ' ');
 
 const STORE_LABEL = { apple: 'App Store', google: 'Google Play' };
@@ -61,4 +95,4 @@ function describeEvent(event) {
   return { title, message };
 }
 
-module.exports = { diffAppleStatus, describeEvent, humanize };
+module.exports = { TRACK_LABEL, diffAppleStatus, diffGoogleStatus, describeEvent, humanize };

@@ -2,6 +2,7 @@ import React from 'react';
 import { PlayStoreIcon, AppleStoreIcon } from '../icons/StoreIcons';
 import LinkGroup from './LinkGroup';
 import AppleStatusBlock from './AppleStatusBlock';
+import GoogleStatusBlock from './GoogleStatusBlock';
 
 function StoreColumn({ icon, title, identifier, links, emptyText, children }) {
   return (
@@ -46,7 +47,11 @@ export default function AppLinksCard({ app }) {
           identifier={app.google?.packageName}
           links={app.google?.links}
           emptyText="Not on Google Play."
-        />
+        >
+          {app.google && (app.google.status || app.google.error) && (
+            <GoogleStatusBlock status={app.google.status} error={app.google.error} fetchedAt={app.google.fetchedAt} />
+          )}
+        </StoreColumn>
       </div>
     </section>
   );

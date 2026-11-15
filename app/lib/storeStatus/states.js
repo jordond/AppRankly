@@ -34,4 +34,29 @@ const APPLE_VERSION_STATE = Object.freeze({
 
 const normalizeAppleVersionState = (raw) => APPLE_VERSION_STATE[raw] || STATE.OTHER;
 
-module.exports = { STATE, APPLE_VERSION_STATE, normalizeAppleVersionState };
+// Google Play `releaseLifecycleState`, without its RELEASE_LIFECYCLE_STATE_ prefix.
+const GOOGLE_STATE_PREFIX = 'RELEASE_LIFECYCLE_STATE_';
+const GOOGLE_RELEASE_STATE = Object.freeze({
+  DRAFT: STATE.DRAFT,
+  NOT_SENT_FOR_REVIEW: STATE.DRAFT,
+  IN_REVIEW: STATE.IN_REVIEW,
+  APPROVED_NOT_PUBLISHED: STATE.APPROVED_PENDING_RELEASE,
+  NOT_APPROVED: STATE.REJECTED,
+  PUBLISHED: STATE.LIVE
+});
+
+const stripGoogleStatePrefix = (raw) => {
+  if (typeof raw !== 'string' || !raw) return null;
+  return raw.startsWith(GOOGLE_STATE_PREFIX) ? raw.slice(GOOGLE_STATE_PREFIX.length) : raw;
+};
+
+const normalizeGoogleReleaseState = (raw) => GOOGLE_RELEASE_STATE[stripGoogleStatePrefix(raw)] || STATE.OTHER;
+
+module.exports = {
+  STATE,
+  APPLE_VERSION_STATE,
+  normalizeAppleVersionState,
+  GOOGLE_RELEASE_STATE,
+  stripGoogleStatePrefix,
+  normalizeGoogleReleaseState
+};

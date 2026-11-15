@@ -36,7 +36,21 @@ export const MOCK_STORE_STATUS = {
           reviewSubmission: { state: 'IN_REVIEW', needsAttention: false }
         }
       },
-      google: { packageName: 'com.demo.alpha', name: 'App Alpha', consoleAppId: '4970000000000000001', links: googleLinks('com.demo.alpha', '4970000000000000001') }
+      google: {
+        packageName: 'com.demo.alpha', name: 'App Alpha', consoleAppId: '4970000000000000001', links: googleLinks('com.demo.alpha', '4970000000000000001'),
+        fetchedAt: new Date().toISOString(),
+        error: null,
+        status: {
+          tracks: [
+            {
+              track: 'production',
+              live: { version: '2.4.0', buildNumber: '240', state: 'LIVE', rawState: 'PUBLISHED' },
+              inFlight: { version: '2.5.0', buildNumber: '250', state: 'IN_REVIEW', rawState: 'IN_REVIEW' }
+            },
+            { track: 'internal', live: { version: '2.5.0', buildNumber: '250', state: 'LIVE', rawState: 'PUBLISHED' }, inFlight: null }
+          ]
+        }
+      }
     },
     {
       id: 'google-com.demo.beta',

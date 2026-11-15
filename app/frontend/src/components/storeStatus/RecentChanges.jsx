@@ -1,8 +1,6 @@
 import React from 'react';
 import { PlayStoreIcon, AppleStoreIcon } from '../icons/StoreIcons';
-import { formatAge } from './AppleStatusBlock';
-
-const humanize = (raw) => String(raw || '').toLowerCase().replace(/_/g, ' ');
+import { formatAge, humanize } from './StatusParts';
 
 // State transitions detected so far, newest first.
 export default function RecentChanges({ changes = [] }) {
