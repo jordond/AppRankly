@@ -10,8 +10,11 @@ const PUBLISHER_BASE = 'https://androidpublisher.googleapis.com/androidpublisher
 const REPORTING_BASE = 'https://playdeveloperreporting.googleapis.com/v1beta1/apps';
 const READ_PREFIXES = [PUBLISHER_BASE, REPORTING_BASE];
 
-// `qa` is not a track name on this endpoint (404); these four are the built-in ones.
-const DEFAULT_TRACKS = ['production', 'beta', 'alpha', 'internal'];
+// The built-in track names (`qa` is not one on this endpoint: 404).
+const BUILT_IN_TRACKS = ['production', 'beta', 'alpha', 'internal'];
+// Each track costs one call per app against a small quota, so only production is read
+// unless `storeStatus.google.tracks` asks for more.
+const DEFAULT_TRACKS = ['production'];
 
 /**
  * The only way the release-state code talks to Google Play. It can issue GET and nothing
@@ -103,6 +106,7 @@ async function fetchGoogleAppStatus(client, packageName, tracks = DEFAULT_TRACKS
 module.exports = {
   PUBLISHER_BASE,
   REPORTING_BASE,
+  BUILT_IN_TRACKS,
   DEFAULT_TRACKS,
   createGoogleClient,
   getTracks,

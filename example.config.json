@@ -40,7 +40,7 @@
     "pollMinutes": 15,
     "notifyOnChange": true,
     "google": {
-      "tracks": ["production", "beta", "alpha", "internal"],
+      "tracks": ["production"],
       "readRolloutViaEdits": false
     },
     "sections": {

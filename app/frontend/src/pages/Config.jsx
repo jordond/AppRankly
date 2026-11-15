@@ -608,10 +608,10 @@ const CONFIG_DOCS_GROUPS = [
         name: 'storeStatus.google.tracks',
         platform: 'Google',
         required: false,
-        default: '["production", "beta", "alpha", "internal"]',
+        default: '["production"]',
         summary: 'Play tracks to read.',
-        description: 'beta is open testing, alpha is closed testing, internal is internal testing. Add custom closed-track names or form-factor tracks such as "wear:production" here. Tracks the app does not have are skipped.',
-        example: '["production", "beta", "wear:production"]'
+        description: 'Only production is read by default, because each track costs one call per app against a small Google quota. Add beta (open testing), alpha (closed testing), internal (internal testing), custom closed-track names or form-factor tracks such as "wear:production". If you add tracks and see "quota reached", raise storeStatus.google.pollMinutes. Tracks the app does not have are skipped.',
+        example: '["production", "beta", "internal"]'
       },
       {
         name: 'storeStatus.google.notifyTracks',

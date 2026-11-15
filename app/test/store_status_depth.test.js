@@ -223,7 +223,7 @@ async function testVitals() {
 async function testServiceSections() {
   assert.strictEqual(isSectionEnabled({}, 'reviews'), true, 'sections are on by default');
   assert.strictEqual(isSectionEnabled({ storeStatus: { sections: { reviews: false } } }, 'reviews'), false);
-  const config = { storeStatus: { pollMinutes: 15 } };
+  const config = { storeStatus: { pollMinutes: 15, google: { tracks: ['production', 'beta', 'alpha', 'internal'] } } };
   assert.strictEqual(getKindTtlMs(config, 'release'), 15 * 60 * 1000);
   assert.strictEqual(getKindTtlMs(config, 'builds'), 15 * 60 * 1000);
   assert.strictEqual(getKindTtlMs(config, 'reviews'), SLOW_KIND_TTL_MS.reviews);

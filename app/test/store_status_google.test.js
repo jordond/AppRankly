@@ -16,7 +16,7 @@ const {
   TOKEN_URL, DEFAULT_SCOPES, loadGoogleCredentials, createGoogleTokenProvider, getGoogleTokenProvider
 } = require('../lib/storeStatus/googleAuth');
 const {
-  PUBLISHER_BASE, DEFAULT_TRACKS, createGoogleClient, getTracks, summarizeTrack, fetchGoogleAppStatus
+  PUBLISHER_BASE, DEFAULT_TRACKS, BUILT_IN_TRACKS, createGoogleClient, getTracks, summarizeTrack, fetchGoogleAppStatus
 } = require('../lib/storeStatus/googleStatus');
 const { classifyGoogleError } = require('../lib/storeStatus/errors');
 const { diffGoogleStatus, describeEvent } = require('../lib/storeStatus/changes');
@@ -193,7 +193,8 @@ function testSummarizeTrack() {
 
 function testTracksConfig() {
   assert.deepStrictEqual(getTracks({}), DEFAULT_TRACKS);
-  assert.deepStrictEqual(DEFAULT_TRACKS, ['production', 'beta', 'alpha', 'internal']);
+  assert.deepStrictEqual(DEFAULT_TRACKS, ['production'], 'one call per app by default: the releases quota is small');
+  assert.deepStrictEqual(BUILT_IN_TRACKS, ['production', 'beta', 'alpha', 'internal']);
   assert.deepStrictEqual(getTracks({ storeStatus: { google: { tracks: ['production', ' wear:production ', 'production', 7, ''] } } }), ['production', 'wear:production']);
   assert.deepStrictEqual(getTracks({ storeStatus: { google: { tracks: [] } } }), DEFAULT_TRACKS);
   assert.deepStrictEqual(getTracks({ storeStatus: { google: { tracks: 'production' } } }), DEFAULT_TRACKS);
@@ -331,7 +332,7 @@ async function testServiceAndPoller() {
     { id: 'google-two', name: 'Two', apple: null, google: { packageName: 'com.example.two' } }
   ];
   // Optional sections are covered in store_status_depth.test.js; this test counts release calls only.
-  const config = { storeStatus: { enabled: true, pollMinutes: 10, google: { pollMinutes: 10 }, sections: { reviews: false, vitals: false } }, ntfyTopic: 'topic-x' };
+  const config = { storeStatus: { enabled: true, pollMinutes: 10, google: { pollMinutes: 10, tracks: BUILT_IN_TRACKS }, sections: { reviews: false, vitals: false } }, ntfyTopic: 'topic-x' };
 
   let calls = 0;
   let prodState = 'IN_REVIEW';
