@@ -53,7 +53,7 @@ export default function AppLinksCard({ app }) {
           emptyText="Not on Google Play."
         >
           {app.google && (app.google.status || app.google.error) && (
-            <GoogleStatusBlock status={app.google.status} error={app.google.error} fetchedAt={app.google.fetchedAt} />
+            <GoogleStatusBlock status={app.google.status} error={app.google.error} fetchedAt={app.google.fetchedAt} rollout={app.google.rollout} />
           )}
           <VitalsBlock data={app.google?.vitals} hideError={Boolean(app.google?.error)} />
           <ReviewsBlock

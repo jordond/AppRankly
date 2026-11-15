@@ -11,6 +11,7 @@ const { classifyAppleError, classifyGoogleError } = require('./errors');
 const { diffAppleStatus, diffGoogleStatus } = require('./changes');
 const { fetchAppleReviews, fetchGoogleReviews } = require('./reviews');
 const { createReportingClient, fetchGoogleVitals } = require('./googleVitals');
+const { createEditsReader, fetchGoogleRollout } = require('./googleRollout');
 const reviewStore = require('./reviewStore');
 const store = require('./store');
 
@@ -18,13 +19,15 @@ const KIND_RELEASE = 'release';
 const KIND_BUILDS = 'builds';
 const KIND_REVIEWS = 'reviews';
 const KIND_VITALS = 'vitals';
+const KIND_ROLLOUT = 'rollout';
 const DEFAULT_POLL_MINUTES = 15;
 
 // Kinds that change slowly or have a tight quota are refetched no more often than this,
 // whatever the poll interval. Kinds not listed follow the poll interval.
 const SLOW_KIND_TTL_MS = {
   [KIND_REVIEWS]: 60 * 60 * 1000,     // Play allows 200 review reads per hour
-  [KIND_VITALS]: 6 * 60 * 60 * 1000   // Play publishes vitals once a day
+  [KIND_VITALS]: 6 * 60 * 60 * 1000,  // Play publishes vitals once a day
+  [KIND_ROLLOUT]: 60 * 60 * 1000      // each read opens and deletes an edit
 };
 
 function getTtlMs(config = {}) {
@@ -56,12 +59,30 @@ function getAppleClient(config) {
   }
 }
 
-/** @returns {{ client: Object|null, reporting: Object|null, error: Object|null }} */
+/** Rollout percentage needs the edits API, so it is read only when explicitly switched on. */
+const isRolloutEnabled = (config) => config?.storeStatus?.google?.readRolloutViaEdits === true;
+
+/** @returns {{ client: Object|null, reporting: Object|null, edits: Object|null, error: Object|null }} */
 function getGoogleClient(config) {
   const credentials = loadGoogleCredentials(config);
-  if (!credentials) return { client: null, reporting: null, error: classifyGoogleError({ code: 'GOOGLE_NOT_CONFIGURED' }) };
+  if (!credentials) return { client: null, reporting: null, edits: null, error: classifyGoogleError({ code: 'GOOGLE_NOT_CONFIGURED' }) };
   const getToken = getGoogleTokenProvider(credentials);
-  return { client: createGoogleClient(getToken), reporting: createReportingClient(getToken), error: null };
+  return {
+    client: createGoogleClient(getToken),
+    reporting: createReportingClient(getToken),
+    edits: isRolloutEnabled(config) ? createEditsReader(getToken) : null,
+    error: null
+  };
+}
+
+function classifyRolloutError(err) {
+  const error = classifyGoogleError(err);
+  if (error.code !== 'GOOGLE_FORBIDDEN') return error;
+  return {
+    ...error,
+    message: 'The service account is not allowed to open an edit, so rollout percentage is unavailable.',
+    hint: 'Reading rollout percentage needs a release permission in Play Console. Grant one to a service account used only by this dashboard, or set storeStatus.google.readRolloutViaEdits to false.'
+  };
 }
 
 /**
@@ -141,11 +162,11 @@ async function getAppleStatus(appleAppId, { client, clientError, appName = null,
 }
 
 /** Everything shown for one app on Google Play. */
-async function getGoogleStatus(packageName, { client, reporting = null, clientError, appName = null, ...options }) {
+async function getGoogleStatus(packageName, { client, reporting = null, edits = null, clientError, appName = null, ...options }) {
   const config = options.config || {};
   const tracks = getTracks(config);
   const base = { platform: 'google', appId: packageName, appName, client, clientError, classify: classifyGoogleError };
-  const [release, reviews, vitals] = await Promise.all([
+  const [release, reviews, vitals, rollout] = await Promise.all([
     getStoreStatus({
       ...base,
       kind: KIND_RELEASE,
@@ -158,9 +179,12 @@ async function getGoogleStatus(packageName, { client, reporting = null, clientEr
       : null,
     isSectionEnabled(config, 'vitals')
       ? getStoreStatus({ ...base, client: reporting, kind: KIND_VITALS, fetch: (c) => fetchGoogleVitals(c, packageName) }, options)
+      : null,
+    isRolloutEnabled(config) && edits
+      ? getStoreStatus({ ...base, client: edits, kind: KIND_ROLLOUT, classify: classifyRolloutError, fetch: (c) => fetchGoogleRollout(c, packageName) }, options)
       : null
   ]);
-  return { ...release, ...(reviews ? { reviews } : {}), ...(vitals ? { vitals } : {}) };
+  return { ...release, ...(reviews ? { reviews } : {}), ...(vitals ? { vitals } : {}), ...(rollout ? { rollout } : {}) };
 }
 
 /**
@@ -168,22 +192,22 @@ async function getGoogleStatus(packageName, { client, reporting = null, clientEr
  * @param {Array} apps from listStoreApps
  * @returns {Promise<Object>} map of app id -> { apple, google }
  */
-async function getStatusForApps(config, apps, { fresh = false, poll = false, now = new Date(), appleClient, googleClient, reportingClient } = {}) {
+async function getStatusForApps(config, apps, { fresh = false, poll = false, now = new Date(), appleClient, googleClient, reportingClient, editsReader } = {}) {
   const options = { config, fresh, poll, now };
   const needsApple = apps.some(app => app.apple);
   const needsGoogle = apps.some(app => app.google);
   const none = { client: null, error: null };
   const apple = appleClient ? { client: appleClient, error: null } : (needsApple ? getAppleClient(config) : none);
   const google = googleClient
-    ? { client: googleClient, reporting: reportingClient || null, error: null }
-    : (needsGoogle ? getGoogleClient(config) : { ...none, reporting: null });
+    ? { client: googleClient, reporting: reportingClient || null, edits: editsReader || null, error: null }
+    : (needsGoogle ? getGoogleClient(config) : { ...none, reporting: null, edits: null });
   const entries = await Promise.all(apps.map(async (app) => {
     const [appleStatus, googleStatus] = await Promise.all([
       app.apple
         ? getAppleStatus(app.apple.appId, { client: apple.client, clientError: apple.error, appName: app.name, ...options })
         : null,
       app.google
-        ? getGoogleStatus(app.google.packageName, { client: google.client, reporting: google.reporting, clientError: google.error, appName: app.name, ...options })
+        ? getGoogleStatus(app.google.packageName, { client: google.client, reporting: google.reporting, edits: google.edits, clientError: google.error, appName: app.name, ...options })
         : null
     ]);
     return [app.id, { apple: appleStatus, google: googleStatus }];
@@ -192,6 +216,6 @@ async function getStatusForApps(config, apps, { fresh = false, poll = false, now
 }
 
 module.exports = {
-  KIND_RELEASE, KIND_BUILDS, KIND_REVIEWS, KIND_VITALS, SLOW_KIND_TTL_MS, getTtlMs, getKindTtlMs, isSectionEnabled, isAppleConfigured, isNotifyTrack,
+  KIND_RELEASE, KIND_BUILDS, KIND_REVIEWS, KIND_VITALS, KIND_ROLLOUT, SLOW_KIND_TTL_MS, getTtlMs, getKindTtlMs, isSectionEnabled, isRolloutEnabled, isAppleConfigured, isNotifyTrack,
   getAppleStatus, getGoogleStatus, getStatusForApps
 };

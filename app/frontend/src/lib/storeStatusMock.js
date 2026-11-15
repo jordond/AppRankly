@@ -61,12 +61,13 @@ export const MOCK_STORE_STATUS = {
           tracks: [
             {
               track: 'production',
-              live: { version: '2.4.0', buildNumber: '240', state: 'LIVE', rawState: 'PUBLISHED' },
+              live: { version: '2.4.0', buildNumber: '240', versionCodes: [240], state: 'LIVE', rawState: 'PUBLISHED' },
               inFlight: { version: '2.5.0', buildNumber: '250', state: 'IN_REVIEW', rawState: 'IN_REVIEW' }
             },
             { track: 'internal', live: { version: '2.5.0', buildNumber: '250', state: 'LIVE', rawState: 'PUBLISHED' }, inFlight: null }
           ]
         },
+        rollout: { error: null, status: { tracks: { production: [{ name: '2.4.0', versionCodes: [240], status: 'inProgress', userFraction: 0.2 }] } } },
         vitals: {
           error: null,
           status: {
