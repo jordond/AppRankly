@@ -319,7 +319,8 @@ async function testServiceAndPoller() {
     { id: 'pair-one', name: 'One', apple: null, google: { packageName: 'com.example.one' } },
     { id: 'google-two', name: 'Two', apple: null, google: { packageName: 'com.example.two' } }
   ];
-  const config = { storeStatus: { enabled: true, pollMinutes: 10 }, ntfyTopic: 'topic-x' };
+  // Optional sections are covered in store_status_depth.test.js; this test counts release calls only.
+  const config = { storeStatus: { enabled: true, pollMinutes: 10, sections: { reviews: false, vitals: false } }, ntfyTopic: 'topic-x' };
 
   let calls = 0;
   let prodState = 'IN_REVIEW';

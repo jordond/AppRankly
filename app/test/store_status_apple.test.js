@@ -164,7 +164,8 @@ async function testClientIsReadOnly() {
 
 async function testServiceCaching() {
   const apps = [{ id: 'pair-one', name: 'One', apple: { appId: '111', bundleId: 'com.example.one' }, google: null }];
-  const config = { storeStatus: { pollMinutes: 10 } };
+  // Optional sections are covered in store_status_depth.test.js; this test counts release calls only.
+  const config = { storeStatus: { pollMinutes: 10, sections: { testflight: false, reviews: false } } };
   assert.strictEqual(getTtlMs(config), 10 * 60 * 1000);
   assert.strictEqual(getTtlMs({}), 15 * 60 * 1000);
   assert.strictEqual(getTtlMs({ storeStatus: { pollMinutes: 0 } }), 15 * 60 * 1000, 'nonsense interval falls back to the default');

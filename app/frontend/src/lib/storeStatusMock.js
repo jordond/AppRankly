@@ -34,6 +34,23 @@ export const MOCK_STORE_STATUS = {
             inFlight: { version: '2.5.0', buildNumber: '121', state: 'IN_REVIEW', rawState: 'IN_REVIEW', phasedRelease: null }
           }],
           reviewSubmission: { state: 'IN_REVIEW', needsAttention: false }
+        },
+        builds: {
+          error: null,
+          status: {
+            total: 121,
+            builds: [
+              { appVersion: '2.5.0', buildNumber: '121', processingState: 'VALID', internalState: 'IN_BETA_TESTING', externalState: 'IN_BETA_TESTING', summaryState: 'IN_BETA_TESTING', uploadedDate: new Date(Date.now() - 2 * 86400000).toISOString() },
+              { appVersion: '2.4.0', buildNumber: '118', processingState: 'VALID', internalState: 'IN_BETA_TESTING', externalState: 'READY_FOR_BETA_SUBMISSION', summaryState: 'IN_BETA_TESTING', uploadedDate: new Date(Date.now() - 20 * 86400000).toISOString() }
+            ]
+          }
+        },
+        reviews: {
+          error: null,
+          status: {
+            total: 42, average: 4.4,
+            recent: [{ reviewId: 'demo-1', rating: 5, title: 'Does what it says', body: 'Fast and simple. Exactly what I needed.', territory: 'USA', createdAt: new Date(Date.now() - 3 * 86400000).toISOString(), replied: true }]
+          }
         }
       },
       google: {
@@ -49,6 +66,20 @@ export const MOCK_STORE_STATUS = {
             },
             { track: 'internal', live: { version: '2.5.0', buildNumber: '250', state: 'LIVE', rawState: 'PUBLISHED' }, inFlight: null }
           ]
+        },
+        vitals: {
+          error: null,
+          status: {
+            crash: { userPerceived: 0.0042, overall: 0.0071, distinctUsers: 5400, date: '2026-11-13' },
+            anr: { userPerceived: 0.0011, overall: 0.0019, distinctUsers: 5400, date: '2026-11-13' }
+          }
+        },
+        reviews: {
+          error: null,
+          status: {
+            total: 17, average: 3.9,
+            recent: [{ reviewId: 'demo-2', rating: 3, title: null, body: 'Good, but the widget sometimes stops updating.', version: '2.4.0', territory: 'en_GB', createdAt: new Date(Date.now() - 86400000).toISOString(), replied: false }]
+          }
         }
       }
     },

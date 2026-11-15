@@ -62,7 +62,7 @@ async function runStoreStatusPoll(config, options = {}) {
   const now = options.now || new Date();
   try {
     const apps = options.apps || await listStoreApps(config);
-    await getStatusForApps(config, apps, { fresh: true, now, appleClient: options.appleClient, googleClient: options.googleClient });
+    await getStatusForApps(config, apps, { poll: true, now, appleClient: options.appleClient, googleClient: options.googleClient, reportingClient: options.reportingClient });
     const notificationsSent = await announcePendingEvents(config, { notify: options.notify, now });
     lastRun = { status: 'ok', lastRun: now.toISOString(), appsChecked: apps.length, notificationsSent };
   } catch (err) {

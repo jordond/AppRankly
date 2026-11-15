@@ -3,6 +3,7 @@ import { PlayStoreIcon, AppleStoreIcon } from '../icons/StoreIcons';
 import LinkGroup from './LinkGroup';
 import AppleStatusBlock from './AppleStatusBlock';
 import GoogleStatusBlock from './GoogleStatusBlock';
+import { TestFlightBlock, ReviewsBlock, VitalsBlock } from './SectionBlocks';
 
 function StoreColumn({ icon, title, identifier, links, emptyText, children }) {
   return (
@@ -40,6 +41,9 @@ export default function AppLinksCard({ app }) {
           {app.apple && (app.apple.status || app.apple.error) && (
             <AppleStatusBlock status={app.apple.status} error={app.apple.error} fetchedAt={app.apple.fetchedAt} />
           )}
+          {/* When release state already failed, the same key error is not repeated per section. */}
+          <TestFlightBlock data={app.apple?.builds} hideError={Boolean(app.apple?.error)} />
+          <ReviewsBlock data={app.apple?.reviews} hideError={Boolean(app.apple?.error)} />
         </StoreColumn>
         <StoreColumn
           icon={<PlayStoreIcon size={14} />}
@@ -51,6 +55,12 @@ export default function AppLinksCard({ app }) {
           {app.google && (app.google.status || app.google.error) && (
             <GoogleStatusBlock status={app.google.status} error={app.google.error} fetchedAt={app.google.fetchedAt} />
           )}
+          <VitalsBlock data={app.google?.vitals} hideError={Boolean(app.google?.error)} />
+          <ReviewsBlock
+            data={app.google?.reviews}
+            hideError={Boolean(app.google?.error)}
+            note="No reviews yet. Google Play only reports reviews from the last 7 days; they are kept here from now on."
+          />
         </StoreColumn>
       </div>
     </section>
