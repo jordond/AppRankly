@@ -64,7 +64,7 @@ export function useAppState() {
 
   // Parse initial state from URL if present (handling sub-routes like /details/android/g-0)
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'reports', 'config', 'glossary'];
+  const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'status', 'reports', 'config', 'glossary'];
   const hasSubRoute = knownSubRoutes.includes(pathParts[0]);
 
   const platIdx = hasSubRoute ? 1 : 0;
@@ -232,7 +232,7 @@ export function useAppState() {
 
     // Preserve sub-routes like /details, /store, /retention, /releases while appending platform/project
     const currentParts = location.pathname.split('/').filter(Boolean);
-    const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'reports', 'config', 'glossary'];
+    const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'status', 'reports', 'config', 'glossary'];
     let currentSubRoute = currentParts.find(part => knownSubRoutes.includes(part));
 
     if (newProject !== 'all' && newProject !== 'manual' && !currentSubRoute) {
@@ -263,7 +263,7 @@ export function useAppState() {
   // Sync state from location pathname if URL segments change
   useEffect(() => {
     const currentParts = location.pathname.split('/').filter(Boolean);
-    const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'reports', 'config', 'glossary'];
+    const knownSubRoutes = ['details', 'store', 'retention', 'releases', 'status', 'reports', 'config', 'glossary'];
     const hasSubRoute = knownSubRoutes.includes(currentParts[0]);
 
     const platIdx = hasSubRoute ? 1 : 0;
