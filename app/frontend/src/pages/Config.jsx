@@ -545,6 +545,120 @@ const CONFIG_DOCS_GROUPS = [
     ]
   },
   {
+    id: 'storeStatus',
+    title: 'Store Status (review and release state)',
+    subtitle: 'Optional. Read-only. Needs more access than analytics: see each field',
+    icon: ShieldCheck,
+    items: [
+      {
+        name: 'storeStatus.enabled',
+        platform: 'Both',
+        required: false,
+        default: 'false',
+        summary: 'Check store state on a schedule and alert when it changes.',
+        description: 'The Store Status page works without this. Set it to true to poll in the background and send one notification per state change (in review, approved, rejected, live) through the configured alert channels. These alerts are sent at any hour, not only inside the active window.',
+        example: 'true'
+      },
+      {
+        name: 'storeStatus.pollMinutes',
+        platform: 'Both',
+        required: false,
+        default: '15',
+        summary: 'Minutes between checks, and how long a result is cached.',
+        description: 'App Store release state and TestFlight builds follow this interval. Play release state and reviews refresh at most hourly and Android vitals every 6 hours, to stay inside the store quotas.',
+        example: '15'
+      },
+      {
+        name: 'storeStatus.notifyOnChange',
+        platform: 'Both',
+        required: false,
+        default: 'true',
+        summary: 'Send alerts for state changes found while polling.',
+        description: 'Set to false to keep polling and the recent-changes list but send no alerts.',
+        example: 'false'
+      },
+      {
+        name: 'storeStatus.apple',
+        platform: 'Apple',
+        required: false,
+        summary: 'Separate App Store Connect key for store status.',
+        description: 'Version, review, TestFlight and customer-review data need a key with an app role, such as App Manager or Admin (tested with Admin); a Sales and Reports key gets 403. Add a second key here to leave the analytics key at Sales and Reports. When omitted, the analytics key is used.',
+        example: '{\n  "keyFilePath": "keys/AuthKey_STATUS.p8",\n  "keyId": "XXXXXXXXXX",\n  "issuerId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"\n}',
+        location: 'App Store Connect → Users and Access → Integrations → Team Keys'
+      },
+      {
+        name: 'storeStatus.google.keyFilePath',
+        platform: 'Google',
+        required: false,
+        summary: 'Separate service account key for store status.',
+        description: 'The service account needs "View app information and download bulk reports (read-only)" and "View app quality information (read-only)" in Play Console, and the Google Play Android Developer API and Google Play Developer Reporting API enabled in its Cloud project. New Play permissions can take 24 to 48 hours to apply. When omitted, the analytics key (keyFilePath) is used.',
+        example: '"keys/google_status_key.json"',
+        location: 'Play Console → Users and permissions; Google Cloud → APIs & Services → Library'
+      },
+      {
+        name: 'storeStatus.google.pollMinutes',
+        platform: 'Google',
+        required: false,
+        default: '60',
+        summary: 'Minutes between reads of Play release state.',
+        description: 'Google allows only a small number of release-list calls, and one is needed per track per app, so Play release state is read hourly by default rather than on every poll. Lower it only if you have few apps and tracks; it is never faster than storeStatus.pollMinutes.',
+        example: '30'
+      },
+      {
+        name: 'storeStatus.google.tracks',
+        platform: 'Google',
+        required: false,
+        default: '["production", "beta", "alpha", "internal"]',
+        summary: 'Play tracks to read.',
+        description: 'beta is open testing, alpha is closed testing, internal is internal testing. Add custom closed-track names or form-factor tracks such as "wear:production" here. Tracks the app does not have are skipped.',
+        example: '["production", "beta", "wear:production"]'
+      },
+      {
+        name: 'storeStatus.google.notifyTracks',
+        platform: 'Google',
+        required: false,
+        default: 'every track except internal',
+        summary: 'Tracks whose changes send an alert.',
+        description: 'Changes on other tracks still appear in the recent-changes list. Internal testing is left out by default because every upload publishes there at once.',
+        example: '["production"]'
+      },
+      {
+        name: 'storeStatus.google.readRolloutViaEdits',
+        platform: 'Google',
+        required: false,
+        default: 'false',
+        summary: 'Show staged-rollout percentage and halted state.',
+        description: 'Google only exposes rollout percentage through the edits API, so with this on the server opens an edit, reads the tracks and deletes the edit, at most once an hour per app. Nothing is changed or committed. Opening an edit invalidates any other edit the same service account has open, which can break a CI upload in progress: only switch this on with a service account that nothing else uses. It may also need a release permission in Play Console.',
+        example: 'true'
+      },
+      {
+        name: 'storeStatus.sections',
+        platform: 'Both',
+        required: false,
+        default: 'all true',
+        summary: 'Switch optional parts of the page off.',
+        description: 'testflight (latest TestFlight builds), reviews (user reviews from both store APIs, kept locally) and vitals (Android crash and ANR rates). Each can be set to false.',
+        example: '{ "testflight": true, "reviews": true, "vitals": false }'
+      },
+      {
+        name: 'storeStatus.customLinks',
+        platform: 'Both',
+        required: false,
+        summary: 'Extra link buttons on the Store Status page.',
+        description: 'Array of { group, label, url }. Only https URLs are shown.',
+        example: '[{ "group": "Apple", "label": "Resolution Center", "url": "https://appstoreconnect.apple.com/..." }]'
+      },
+      {
+        name: 'storeStatus.linkOverrides',
+        platform: 'Both',
+        required: false,
+        summary: 'Replace a built-in console link when a store changes its URLs.',
+        description: 'Console URLs are undocumented and change. Map a link ID to a new template; placeholders are {appleAppId}, {packageName}, {playBase}, {consoleAppId} and {gcpProjectId}.',
+        example: '{ "google.policy": "{playBase}/app/{consoleAppId}/policy-center" }'
+      }
+    ]
+  },
+  {
     id: 'env',
     title: 'Environment Variables (System / Docker)',
     subtitle: 'Server environment overrides',

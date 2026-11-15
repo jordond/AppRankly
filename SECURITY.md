@@ -51,6 +51,8 @@ When operating AppRankly on your server, container, or cloud instance, please fo
 ### 2. Follow Principle of Least Privilege
 - **Google Cloud Service Account**: Grant only the minimal permission required (*"View app information and download bulk reports (read-only)"*) in Google Play Console.
 - **Apple App Store Connect Key**: Assign the lowest required role (*"Sales and Reports"*) when creating API keys in App Store Connect.
+- **Store Status keys (optional feature)**: The Store Status page needs more than the analytics minimum: an App Store Connect key with an app role (such as *"App Manager"* or *"Admin"*; tested with Admin), and for Google the extra *"View app quality information (read-only)"* permission. To keep the analytics key at *"Sales and Reports"*, give store status its own key under `storeStatus.apple`. AppRankly only sends read requests to App Store Connect, whatever role the key has, but a key with an app role can do more than read if it leaks, so protect it accordingly.
+- **Play rollout percentage (opt-in)**: `storeStatus.google.readRolloutViaEdits` makes AppRankly open and delete a Play edit to read rollout percentage. It never changes or commits an edit, but opening one invalidates any other open edit of the same service account. Use a service account dedicated to AppRankly, never one shared with CI, and leave the option off if you do not need it.
 - **AI Provider Keys**: Consider placing usage limits or spending caps on your OpenAI, Anthropic, or Gemini API keys.
 
 ### 3. Network & Transport Security

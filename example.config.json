@@ -35,6 +35,21 @@
       "ios": "com.example.app1.ios"
     }
   ],
+  "storeStatus": {
+    "enabled": false,
+    "pollMinutes": 15,
+    "notifyOnChange": true,
+    "google": {
+      "tracks": ["production", "beta", "alpha", "internal"],
+      "readRolloutViaEdits": false
+    },
+    "sections": {
+      "testflight": true,
+      "reviews": true,
+      "vitals": true
+    },
+    "customLinks": []
+  },
   "ignoredPackages": [
     "com.example.internaltest",
     "com.example.deprecatedapp"

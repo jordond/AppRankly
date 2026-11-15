@@ -6,6 +6,7 @@ import { PlayStoreIcon, AppleStoreIcon } from '../components/icons/StoreIcons';
 import AppLinksCard from '../components/storeStatus/AppLinksCard';
 import LinkGroup from '../components/storeStatus/LinkGroup';
 import RecentChanges from '../components/storeStatus/RecentChanges';
+import SetupGuide from '../components/storeStatus/SetupGuide';
 
 function groupCustomLinks(links = []) {
   const groups = new Map();
@@ -111,6 +112,8 @@ export default function StoreStatus({ authToken, isStaticMode, isDemoMode }) {
               true in config.json to check on a schedule and get notified when a state changes.
             </p>
           )}
+
+          <SetupGuide authToken={authToken} isStaticMode={isStaticMode} isDemoMode={isDemoMode} />
 
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Account links</h3>

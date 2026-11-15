@@ -172,6 +172,7 @@ npm run dev
 * ⚡ **Zero-Dependency SQLite Cache**: Store historical metrics, aggregates, and expensive AI results safely inside `node:sqlite` so you never pay double API bills or redundant fetch times.
 * 📝 **Contextual Notebooks**: Save persistent notes per application to mark feature additions or marketing campaigns directly inline with data trends.
 * 🔔 **Background Scheduler & Push Notifications**: Automated cron sync cycles that broadcast performance thresholds to your phone using [ntfy.sh](https://ntfy.sh/) (free, privacy-preserving, and optional).
+* 🚦 **Store Status**: See each app's review and release state on both stores side by side (live version, in review, approved, rejected), with TestFlight builds, Play tracks, recent reviews, Android vitals and one-click links to the matching console pages. Read-only, with optional alerts when a state changes.
 * 🚀 **Release Tracking**: Tag specific application releases or let the app auto-detect updates to trace impact visually across data timelines.
 * 🐙 **GitHub Repository & Ecosystem Tracking**: Monitor stars, forks, watchers, and open issues/PRs alongside daily package downloads (npm, PyPI, RubyGems, Docker) with historical trend modals and automated daily delta snapshots.
 * 🛠 **Headless CLI Companion**: Pull data payloads, migrate states, or perform manual historical database backfills over custom chron ranges using a scriptable terminal tool.
@@ -204,7 +205,31 @@ Google Play exports structured performance metrics into a private Google Cloud S
 3. Download the provided `.p8` credential token into your designated `keys/` directory mapping.
 4. Record the **Issuer ID** listed at the top of the interface and the specific 10-character **Key ID**.
 
-### 3. GitHub (for Notes Sync)
+### 3. Store Status (optional, read-only)
+
+The **Store Status** page shows review and release state per app and links to the matching console pages. It only reads from the stores; it never changes a release, a review or a setting. The link buttons work with the credentials above. The status data needs more access than analytics does:
+
+**Apple**
+* Version state, review state, TestFlight builds and customer reviews need an API key with an app role, such as **App Manager** or **Admin** (tested with Admin). A key with only **Sales and Reports** gets `403` on these calls, and the page says so while analytics keeps working.
+* To keep the analytics key at Sales and Reports, create a second team key and add it under `storeStatus.apple`:
+  ```json
+  "storeStatus": {
+    "apple": { "keyFilePath": "keys/AuthKey_STATUS.p8", "keyId": "XXXXXXXXXX", "issuerId": "xxxx-xxxx-xxxx-xxxx" }
+  }
+  ```
+
+**Google**
+* In Play Console → **Users and permissions**, give the service account **"View app information and download bulk reports (read-only)"** and **"View app quality information (read-only)"**. New permissions can take 24 to 48 hours to apply.
+* In the service account's Google Cloud project, enable the **Google Play Android Developer API** and the **Google Play Developer Reporting API**.
+* Per-app Play Console buttons need `PlaystoreConsoleUrl` to contain your developer ID and `appMetadata.<package>.consoleAppId` for each app.
+
+**Alerts**: set `"storeStatus": { "enabled": true }` to check on a schedule (every `pollMinutes`, default 15) and get one notification per state change through your configured alert channels. These alerts are sent at any hour. Play release state is read hourly by default (`storeStatus.google.pollMinutes`), because Google allows only a small number of release-list calls and one is needed per track per app.
+
+**Rollout percentage (opt-in)**: Google exposes staged-rollout percentage only through its edits API. With `storeStatus.google.readRolloutViaEdits: true`, AppRankly opens an edit, reads the tracks and deletes the edit, at most once an hour per app; nothing is changed or committed. Opening an edit invalidates any other edit the same service account has open, so **only enable this with a service account that no CI job or other tool uses**. It may also need a release permission in Play Console.
+
+Use **Setup and access → Check access** on the Store Status page to see which reads your keys are allowed to make. All `storeStatus` fields are listed in the in-app configuration reference.
+
+### 4. GitHub (for Notes Sync)
 
 AppRankly can sync your application notes and marketing records to a private GitHub repository, ensuring your annotations are versioned and backed up.
 
@@ -276,6 +301,7 @@ Duplicate `example.config.json` inside your designated configuration target dire
 | `ntfyTopic` | Alert Framework | Unique secret path defining your subscription string. Leave empty `""` to turn off. | Optional |
 | `refreshIntervalHours` | Worker Lifecycle | Defines the lookup intervals checking for fresh metrics upstream. | Default: `1` |
 | `statsCheckRangeDays` | Data Aggregation | Window depth processing past timeline metrics during cron sync updates. | Default: `30` |
+| `storeStatus` | Store Status | Optional block for review and release state: polling and alerts, a separate status key per store, Play tracks, opt-in rollout percentage, custom links. See [Store Status](#3-store-status-optional-read-only). | Optional |
 | `githubRepos` | Ecosystem Tracking | Array of GitHub repository URLs to poll and monitor for stars, forks, and package download volume. | Optional |
 | `gitNotes` | Version Control | Configuration for syncing local notes to a remote Git repository (GitHub/GitLab). | Optional |
 | `ai` | Optimization Lab | Object mappings storing keys and customized models across AI vendors. | Optional |
