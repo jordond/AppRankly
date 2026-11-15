@@ -21,7 +21,7 @@ const {
 const { classifyGoogleError } = require('../lib/storeStatus/errors');
 const { diffGoogleStatus, describeEvent } = require('../lib/storeStatus/changes');
 const store = require('../lib/storeStatus/store');
-const { getStatusForApps, isNotifyTrack } = require('../lib/storeStatus/service');
+const { getStatusForApps, isNotifyTrack, getGoogleReleaseTtlMs } = require('../lib/storeStatus/service');
 const { runStoreStatusPoll } = require('../lib/storeStatus/poller');
 
 // A throwaway key pair generated for this run; nothing here is a real credential.
@@ -198,6 +198,13 @@ function testTracksConfig() {
   assert.deepStrictEqual(getTracks({ storeStatus: { google: { tracks: [] } } }), DEFAULT_TRACKS);
   assert.deepStrictEqual(getTracks({ storeStatus: { google: { tracks: 'production' } } }), DEFAULT_TRACKS);
 
+  // Play release state has its own, slower interval because releases.list has a small quota.
+  assert.strictEqual(getGoogleReleaseTtlMs({}), 60 * 60 * 1000);
+  assert.strictEqual(getGoogleReleaseTtlMs({ storeStatus: { pollMinutes: 15, google: { pollMinutes: 30 } } }), 30 * 60 * 1000);
+  assert.strictEqual(getGoogleReleaseTtlMs({ storeStatus: { pollMinutes: 15, google: { pollMinutes: 5 } } }), 15 * 60 * 1000, 'never faster than the poll itself');
+  assert.strictEqual(getGoogleReleaseTtlMs({ storeStatus: { pollMinutes: 120 } }), 120 * 60 * 1000);
+  assert.strictEqual(getGoogleReleaseTtlMs({ storeStatus: { google: { pollMinutes: 'soon' } } }), 60 * 60 * 1000);
+
   assert.strictEqual(isNotifyTrack({}, 'production'), true);
   assert.strictEqual(isNotifyTrack({}, 'internal'), false, 'internal-track changes are quiet by default');
   assert.strictEqual(isNotifyTrack({ storeStatus: { google: { notifyTracks: ['internal'] } } }, 'internal'), true);
@@ -227,6 +234,10 @@ function testClassifyGoogleError() {
   assert.strictEqual(notFound.code, 'GOOGLE_NOT_FOUND');
   assert(/Package not found/.test(notFound.detail));
   assert.strictEqual(classifyGoogleError(withStatus(429, {})).code, 'GOOGLE_RATE_LIMITED');
+  // Seen live: an exhausted quota arrives as 403 PERMISSION_DENIED, and must not read as a missing permission.
+  const quota = classifyGoogleError(withStatus(403, { code: 403, message: 'Listing releases quota exceeded.', status: 'PERMISSION_DENIED' }));
+  assert.strictEqual(quota.code, 'GOOGLE_RATE_LIMITED');
+  assert(!/permission/i.test(quota.message + quota.hint));
   assert.strictEqual(classifyGoogleError(withStatus(503, {})).code, 'GOOGLE_UNAVAILABLE');
   assert.strictEqual(classifyGoogleError({ code: 'ECONNRESET' }).code, 'NETWORK');
   assert.strictEqual(classifyGoogleError({ code: 'GOOGLE_NOT_CONFIGURED' }).code, 'GOOGLE_NOT_CONFIGURED');
@@ -320,7 +331,7 @@ async function testServiceAndPoller() {
     { id: 'google-two', name: 'Two', apple: null, google: { packageName: 'com.example.two' } }
   ];
   // Optional sections are covered in store_status_depth.test.js; this test counts release calls only.
-  const config = { storeStatus: { enabled: true, pollMinutes: 10, sections: { reviews: false, vitals: false } }, ntfyTopic: 'topic-x' };
+  const config = { storeStatus: { enabled: true, pollMinutes: 10, google: { pollMinutes: 10 }, sections: { reviews: false, vitals: false } }, ntfyTopic: 'topic-x' };
 
   let calls = 0;
   let prodState = 'IN_REVIEW';

@@ -35,6 +35,19 @@ function getTtlMs(config = {}) {
   return (Number.isFinite(minutes) && minutes >= 1 ? minutes : DEFAULT_POLL_MINUTES) * 60 * 1000;
 }
 
+// Play's releases.list has a small, undocumented quota: about 120 calls within 20 minutes
+// were enough to exhaust it. One call is needed per track per app, so Play release state
+// is read hourly by default (`storeStatus.google.pollMinutes`) instead of on every poll.
+const GOOGLE_RELEASE_DEFAULT_MINUTES = 60;
+// A poll that lands a few seconds early still counts as due.
+const POLL_TOLERANCE_MS = 60 * 1000;
+
+function getGoogleReleaseTtlMs(config = {}) {
+  const minutes = Number(config.storeStatus?.google?.pollMinutes);
+  const own = (Number.isFinite(minutes) && minutes >= 1 ? minutes : GOOGLE_RELEASE_DEFAULT_MINUTES) * 60 * 1000;
+  return Math.max(getTtlMs(config), own);
+}
+
 const isSlowKind = (kind) => kind in SLOW_KIND_TTL_MS;
 const getKindTtlMs = (config, kind) => Math.max(getTtlMs(config), SLOW_KIND_TTL_MS[kind] || 0);
 
@@ -45,8 +58,24 @@ function isAppleConfigured(config = {}) {
   return Boolean(config.keyFilePath_apple && config.appleIssuerId && config.appleKeyId);
 }
 
+/**
+ * Store status can use its own App Store Connect key (`storeStatus.apple`), so the
+ * analytics key can stay at the Sales and Reports role. Without it the analytics key is used.
+ */
+function hasAppleStatusKey(config = {}) {
+  const key = config.storeStatus?.apple;
+  return Boolean(key && key.keyFilePath && key.keyId && key.issuerId);
+}
+
+function withAppleStatusKey(config = {}) {
+  if (!hasAppleStatusKey(config)) return config;
+  const key = config.storeStatus.apple;
+  return { ...config, keyFilePath_apple: key.keyFilePath, appleKeyId: key.keyId, appleIssuerId: key.issuerId };
+}
+
 /** @returns {{ client: Object|null, error: Object|null }} */
-function getAppleClient(config) {
+function getAppleClient(baseConfig) {
+  const config = withAppleStatusKey(baseConfig);
   if (!isAppleConfigured(config)) {
     return { client: null, error: classifyAppleError({ code: 'APPLE_NOT_CONFIGURED' }) };
   }
@@ -104,7 +133,8 @@ const toView = (snapshot) => ({
 
 /**
  * Cache-or-fetch for one kind of status of one app on one store.
- * @param {Object} source { platform, appId, kind, appName, client, clientError, fetch, classify, diff? }
+ * @param {Object} source { platform, appId, kind, appName, client, clientError, fetch, classify, diff?, ttlMs? }
+ *   `ttlMs` gives the source its own refresh interval; it is then not refetched on every poll.
  * @param {Object} options
  * @param {Object} options.config
  * @param {boolean} [options.fresh] refetch everything (the page's Refresh button)
@@ -114,8 +144,10 @@ async function getStoreStatus(source, { config = {}, fresh = false, poll = false
   const { platform, appId, kind = KIND_RELEASE, appName = null, client, clientError, fetch, classify, diff } = source;
   if (!appId) return toView(null);
   const cached = store.getSnapshot(platform, appId, kind);
-  const force = fresh || (poll && !isSlowKind(kind));
-  if (!force && store.isFresh(cached, getKindTtlMs(config, kind), now)) return toView(cached);
+  const slow = source.ttlMs !== undefined || isSlowKind(kind);
+  const ttlMs = (source.ttlMs !== undefined ? source.ttlMs : getKindTtlMs(config, kind)) - (poll ? POLL_TOLERANCE_MS : 0);
+  const force = fresh || (poll && !slow);
+  if (!force && store.isFresh(cached, ttlMs, now)) return toView(cached);
   if (!client) return { ...toView(cached), error: clientError };
   try {
     const payload = await fetch(client);
@@ -170,6 +202,7 @@ async function getGoogleStatus(packageName, { client, reporting = null, edits = 
     getStoreStatus({
       ...base,
       kind: KIND_RELEASE,
+      ttlMs: getGoogleReleaseTtlMs(config),
       fetch: (c) => fetchGoogleAppStatus(c, packageName, tracks),
       diff: (previous, next) => diffGoogleStatus(previous, next)
         .map(event => ({ ...event, silent: !isNotifyTrack(config, event.track) }))
@@ -216,6 +249,7 @@ async function getStatusForApps(config, apps, { fresh = false, poll = false, now
 }
 
 module.exports = {
-  KIND_RELEASE, KIND_BUILDS, KIND_REVIEWS, KIND_VITALS, KIND_ROLLOUT, SLOW_KIND_TTL_MS, getTtlMs, getKindTtlMs, isSectionEnabled, isRolloutEnabled, isAppleConfigured, isNotifyTrack,
+  KIND_RELEASE, KIND_BUILDS, KIND_REVIEWS, KIND_VITALS, KIND_ROLLOUT, SLOW_KIND_TTL_MS, getTtlMs, getKindTtlMs, getGoogleReleaseTtlMs, isSectionEnabled, isRolloutEnabled,
+  hasAppleStatusKey, withAppleStatusKey, getAppleClient, getGoogleClient, isAppleConfigured, isNotifyTrack,
   getAppleStatus, getGoogleStatus, getStatusForApps
 };

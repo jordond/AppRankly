@@ -285,14 +285,16 @@ async function testServiceSections() {
   assert.strictEqual(google.vitals.status.anr.distinctUsers, 200);
   assert.deepStrictEqual(google.status.tracks, [], 'release state is still there next to the sections');
 
-  // A poll refetches release state and builds, but leaves reviews and vitals to their own, longer TTL.
+  // A poll refetches App Store release state and builds. Play release state, reviews and vitals
+  // keep their own, longer intervals.
   await getStatusForApps(config, apps, { ...clients, poll: true, now: at(15) });
-  assert.deepStrictEqual(counts, { versions: 2, submissions: 2, builds: 2, appleReviews: 1, tracks: 8, googleReviews: 1, vitalsGet: 2, vitalsQuery: 2 });
+  assert.deepStrictEqual(counts, { versions: 2, submissions: 2, builds: 2, appleReviews: 1, tracks: 4, googleReviews: 1, vitalsGet: 2, vitalsQuery: 2 });
 
   // After an hour reviews are due; vitals are not.
   await getStatusForApps(config, apps, { ...clients, poll: true, now: at(61) });
   assert.strictEqual(counts.appleReviews, 2);
   assert.strictEqual(counts.googleReviews, 2);
+  assert.strictEqual(counts.tracks, 8, 'Play release state is read hourly by default');
   assert.strictEqual(counts.vitalsGet, 2);
 
   // The Refresh button refetches everything.

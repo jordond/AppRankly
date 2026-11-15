@@ -31,7 +31,7 @@ function classifyAppleError(err) {
     return {
       code: 'APPLE_FORBIDDEN',
       message: 'The App Store Connect API key is not allowed to read app versions.',
-      hint: 'Keys with only the Sales or Finance role cannot read version and review state. Create a team key that also has an app role (Developer, App Manager or Admin), and check that all agreements are accepted in App Store Connect.',
+      hint: 'Keys with only the Sales or Finance role cannot read version and review state. Create a team key with an app role such as App Manager or Admin, and check that all agreements are accepted in App Store Connect.',
       detail
     };
   }
@@ -90,6 +90,16 @@ function classifyGoogleError(err) {
       detail: oauthError || detail
     };
   }
+  // Play reports an exhausted quota as 403 PERMISSION_DENIED ("Listing releases quota
+  // exceeded."), not as 429. It is not a permission problem and clears by itself.
+  if (status === 429 || (status === 403 && /quota exceeded/i.test(detail || ''))) {
+    return {
+      code: 'GOOGLE_RATE_LIMITED',
+      message: 'Google Play API quota reached.',
+      hint: 'Status will refresh once the quota resets. If this keeps happening, raise storeStatus.google.pollMinutes or read fewer tracks.',
+      detail
+    };
+  }
   if (status === 403) {
     const service = googleDisabledService(err);
     if (service) {
@@ -114,9 +124,6 @@ function classifyGoogleError(err) {
       hint: 'The app needs at least one uploaded build, and the service account needs access to it.',
       detail
     };
-  }
-  if (status === 429) {
-    return { code: 'GOOGLE_RATE_LIMITED', message: 'Google Play API quota reached.', hint: 'Status will refresh on the next poll.', detail };
   }
   if (status >= 500) {
     return { code: 'GOOGLE_UNAVAILABLE', message: `Google Play returned HTTP ${status}.`, hint: null, detail };

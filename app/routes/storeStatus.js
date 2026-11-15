@@ -6,6 +6,11 @@ const { listStoreApps, getGcpProjectId } = require('../lib/storeStatus/apps');
 const { getStatusForApps } = require('../lib/storeStatus/service');
 const { isEnabled, getStoreStatusPollerStatus } = require('../lib/storeStatus/poller');
 const store = require('../lib/storeStatus/store');
+const { probeCapabilities } = require('../lib/storeStatus/capabilities');
+
+// The access check makes a handful of store API calls; repeat clicks reuse the last answer.
+const CAPABILITIES_TTL_MS = 60 * 1000;
+let lastCapabilities = null; // { at, body }
 
 // GET /api/store-status/links
 // Console and store-listing links for every app, plus account-level links.
@@ -44,6 +49,23 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('[StoreStatus] Failed to load status:', err.message);
     res.status(500).json({ error: 'Failed to load store status' });
+  }
+});
+
+// GET /api/store-status/capabilities
+// Which reads the configured keys are allowed to make, for the setup guide.
+router.get('/capabilities', async (req, res) => {
+  const config = getBaseConfig();
+  if (!config) return res.json({ apple: { configured: false, checks: [] }, google: { configured: false, checks: [] } });
+  if (lastCapabilities && Date.now() - lastCapabilities.at < CAPABILITIES_TTL_MS) return res.json(lastCapabilities.body);
+  try {
+    const body = await probeCapabilities(config, await listStoreApps(config));
+    body.checkedAt = new Date().toISOString();
+    lastCapabilities = { at: Date.now(), body };
+    res.json(body);
+  } catch (err) {
+    console.error('[StoreStatus] Access check failed:', err.message);
+    res.status(500).json({ error: 'Failed to check store access' });
   }
 });
 
